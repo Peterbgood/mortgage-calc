@@ -3,7 +3,7 @@
     <div class="max-w-7xl mx-auto">
       <header class="text-center mb-12 relative">
         <h1 class="text-4xl font-extrabold tracking-tight italic text-slate-800">Heisenberg's Empire Expansion</h1>
-        <p class="mt-4 text-lg text-slate-600 font-medium uppercase tracking-widest underline decoration-blue-500 underline-offset-8">Regional Overhead & Money Laundering Analysis</p>
+        <p class="mt-4 text-lg text-slate-600 font-medium uppercase tracking-widest underline decoration-blue-500 underline-offset-8">Regional Overhead</p>
         
         <button @click="resetData" class="mt-8 bg-slate-200 hover:bg-rose-500 hover:text-white text-slate-600 px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-sm border border-slate-300">
           Reset to Blue Sky Defaults
