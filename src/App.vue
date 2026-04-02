@@ -2,8 +2,8 @@
   <div class="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 font-sans text-slate-900">
     <div class="max-w-7xl mx-auto">
       <header class="text-center mb-12">
-        <h1 class="text-4xl font-extrabold tracking-tight">Relocation Cost Comparison</h1>
-        <p class="mt-4 text-lg text-slate-600 font-medium uppercase tracking-widest">Knoxville vs. Charlotte vs. Tampa</p>
+        <h1 class="text-4xl font-extrabold tracking-tight italic text-slate-800">Relocation Cost Comparison</h1>
+        <p class="mt-4 text-lg text-slate-600 font-medium uppercase tracking-widest underline decoration-blue-500 underline-offset-8">Financial Breakdown</p>
       </header>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -12,8 +12,8 @@
           
           <div class="bg-slate-900 p-6 text-white text-center">
             <h2 class="text-2xl font-bold uppercase tracking-wider">{{ loc.name }}</h2>
-            <p class="text-slate-400 text-[10px] mt-1 font-black tracking-widest">ESTIMATED MONTHLY NET</p>
-            <p class="text-3xl font-black text-emerald-400 mt-1">{{ formatCurr(getNetRemaining(loc)) }}</p>
+            <p class="text-slate-400 text-[10px] mt-1 font-black tracking-widest uppercase">Monthly Cash Remaining</p>
+            <p class="text-3xl font-black text-emerald-400 mt-1">{{ formatCurr(getFinalRemainder(loc)) }}</p>
           </div>
 
           <div class="p-6 space-y-4 flex-grow bg-white">
@@ -34,7 +34,7 @@
                 <input v-model.number="loc.homePrice" type="number" class="w-full bg-slate-50 border-slate-200 rounded-lg p-2 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none">
               </div>
               <div>
-                <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Down Payment</label>
+                <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Down Pmt</label>
                 <input v-model.number="loc.downPayment" type="number" class="w-full bg-slate-50 border-slate-200 rounded-lg p-2 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none">
               </div>
             </div>
@@ -44,41 +44,59 @@
               <input v-model.number="loc.rate" type="number" step="0.1" class="w-full bg-slate-50 border-slate-200 rounded-lg p-2 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
 
-            <div class="mt-6 p-5 bg-blue-50 rounded-2xl border border-blue-100 space-y-3">
-              <h3 class="text-[11px] font-black text-blue-600 uppercase tracking-widest border-b border-blue-200 pb-2">Monthly Mortgage (PITI)</h3>
-              
-              <div class="flex justify-between text-sm font-medium">
-                <span class="text-slate-600">Principal & Interest</span>
-                <span>{{ formatCurr(calcPI(loc)) }}</span>
+            <div class="p-4 bg-rose-50 rounded-2xl border border-rose-100 space-y-2">
+              <div class="flex justify-between items-center border-b border-rose-200 pb-2 mb-1">
+                <h3 class="text-[10px] font-black text-rose-600 uppercase tracking-widest">Tax Deductions</h3>
+                <span class="text-[10px] font-bold text-rose-800 bg-rose-100 px-2 py-0.5 rounded">Gross: {{ formatCurr((loc.wifeIncome + loc.husbandIncome) / 12) }}</span>
               </div>
-              
-              <div class="flex justify-between text-sm font-medium">
-                <span class="text-slate-600">Monthly Taxes</span>
-                <span>{{ formatCurr(getYearlyPropertyTax(loc) / 12) }}</span>
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-600">Federal Tax (15%)</span>
+                <span class="font-bold text-rose-600">-{{ formatCurr((loc.wifeIncome + loc.husbandIncome) * 0.15 / 12) }}</span>
               </div>
-
-              <div class="flex justify-between text-sm font-medium">
-                <span class="text-slate-600">Monthly Home Ins.</span>
-                <span>{{ formatCurr(loc.homeInsurance / 12) }}</span>
+              <div v-if="loc.stateTaxRate > 0" class="flex justify-between text-xs">
+                <span class="text-slate-600">State Tax ({{(loc.stateTaxRate * 100).toFixed(1)}}%)</span>
+                <span class="font-bold text-rose-600">-{{ formatCurr(getYearlyStateTax(loc) / 12) }}</span>
               </div>
-
-              <div class="pt-2 border-t border-blue-200 flex justify-between items-center">
-                <span class="text-xs font-black text-slate-700 uppercase leading-none">Full Payment</span>
-                <span class="text-xl font-black text-blue-700">{{ formatCurr(getFullMortgagePayment(loc)) }}</span>
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-600">Sales Tax Est.</span>
+                <span class="font-bold text-rose-600">-{{ formatCurr(getMonthlySalesTax(loc)) }}</span>
+              </div>
+              <div class="pt-2 border-t border-rose-200 flex justify-between items-center">
+                <span class="text-xs font-black text-slate-700 uppercase">Monthly Net Take-home</span>
+                <span class="text-sm font-black text-slate-900">{{ formatCurr(getMonthlyNetAfterTax(loc)) }}</span>
               </div>
             </div>
 
-            <div class="mt-4 p-4 bg-slate-900 rounded-2xl space-y-2 shadow-inner">
-              <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-700 pb-2 mb-2">Other Annual Costs</h3>
+            <div class="p-4 bg-blue-50 rounded-2xl border border-blue-100 space-y-2 shadow-sm">
+              <h3 class="text-[10px] font-black text-blue-600 uppercase tracking-widest border-b border-blue-200 pb-2">Monthly Fixed Costs</h3>
               
-              <div class="flex justify-between text-xs">
-                <span class="text-slate-500">State Income Tax</span>
-                <span class="font-bold text-rose-400">{{ formatCurr(getYearlyStateTax(loc)) }}</span>
+              <div class="space-y-1.5 pb-2">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-600 italic">P&I Payment</span>
+                  <span class="font-bold text-slate-900">{{ formatCurr(calcPI(loc)) }}</span>
+                </div>
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-600 italic">Prop. Tax (Escrow)</span>
+                  <span class="font-bold text-slate-900">{{ formatCurr(loc.fixedPropertyTax / 12) }}</span>
+                </div>
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-600 italic">Home Ins. (Escrow)</span>
+                  <span class="font-bold text-slate-900">{{ formatCurr(loc.fixedHomeInsurance / 12) }}</span>
+                </div>
+                <div class="flex justify-between items-center pt-1 border-t border-blue-200 border-dashed">
+                  <span class="text-[10px] font-black text-blue-700 uppercase">Total House Payment</span>
+                  <span class="text-xs font-black text-blue-800">{{ formatCurr(getFullMortgagePayment(loc)) }}</span>
+                </div>
               </div>
 
-              <div class="flex justify-between text-xs">
-                <span class="text-slate-500">3-Car Auto Policy</span>
-                <span class="font-bold text-slate-200">{{ formatCurr(loc.carInsurance * 12) }}</span>
+              <div class="flex justify-between text-xs pt-2 border-t border-blue-200">
+                <span class="text-slate-600 italic">3-Car Auto Policy</span>
+                <span class="font-bold text-slate-900">{{ formatCurr(loc.carInsurance) }}</span>
+              </div>
+
+              <div class="pt-2 border-t-2 border-blue-300 flex justify-between items-center">
+                <span class="text-xs font-black text-blue-900 uppercase">Total Monthly Bills</span>
+                <span class="text-sm font-black text-blue-900">{{ formatCurr(getTotalMonthlyBills(loc)) }}</span>
               </div>
             </div>
           </div>
@@ -87,25 +105,23 @@
             <div v-if="key !== 'knoxville'" class="space-y-4">
               <div class="flex justify-between items-center">
                 <div>
-                  <p class="text-[10px] uppercase font-black text-slate-400 leading-none">Cost Difference</p>
-                  <p class="text-xs text-slate-500 font-bold mt-1">Expenses / Month</p>
+                  <p class="text-[10px] uppercase font-black text-slate-400 leading-none">Vs. Knoxville Baseline</p>
+                  <p class="text-xs text-slate-500 font-bold mt-1 italic">Difference / Month</p>
                 </div>
-                <span :class="getExpenseDiff(loc) <= 0 ? 'text-emerald-600' : 'text-rose-600'" class="text-2xl font-black italic">
-                  {{ getExpenseDiff(loc) > 0 ? '+' : '' }}{{ formatCurr(getExpenseDiff(loc)) }}
+                <span :class="getMonthlyDiff(loc) >= 0 ? 'text-emerald-600' : 'text-rose-600'" class="text-2xl font-black italic">
+                  {{ getMonthlyDiff(loc) >= 0 ? '+' : '' }}{{ formatCurr(getMonthlyDiff(loc)) }}
                 </span>
               </div>
+
               <div class="pt-3 border-t border-slate-200 flex justify-between items-center">
-                <p class="text-[10px] uppercase font-black text-slate-400">Annual Expense Impact</p>
-                <span :class="getExpenseDiff(loc) <= 0 ? 'text-emerald-700' : 'text-rose-700'" class="text-sm font-black text-right">
-                   {{ getExpenseDiff(loc) > 0 ? '+' : '' }}{{ formatCurr(getExpenseDiff(loc) * 12) }} / yr
+                <p class="text-[10px] uppercase font-black text-slate-400">Total Yearly Impact</p>
+                <span :class="getMonthlyDiff(loc) >= 0 ? 'text-emerald-700' : 'text-rose-700'" class="text-sm font-black text-right">
+                  {{ getMonthlyDiff(loc) >= 0 ? '+' : '' }}{{ formatCurr(getMonthlyDiff(loc) * 12) }} / yr
                 </span>
               </div>
-              <p class="text-[9px] text-slate-400 italic text-center leading-tight mt-2">
-                Impact tracks the difference in taxes and bills compared to Knoxville, ignoring total income changes.
-              </p>
             </div>
-            <div v-else class="text-center py-8">
-              <span class="text-[10px] uppercase font-black text-slate-400 tracking-widest bg-slate-200 px-3 py-1 rounded-full">Baseline Location</span>
+            <div v-else class="text-center py-10">
+              <span class="text-[10px] uppercase font-black text-slate-400 tracking-widest bg-slate-200 px-4 py-2 rounded-full border border-slate-300">Baseline Location</span>
             </div>
           </div>
 
@@ -116,7 +132,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue';
+import { reactive, computed } from 'vue';
 
 interface LocationData {
   name: string;
@@ -125,9 +141,10 @@ interface LocationData {
   homePrice: number;
   downPayment: number;
   rate: number;
-  taxRate: number;
-  stateTax: number;
-  homeInsurance: number;
+  fixedPropertyTax: number;
+  fixedHomeInsurance: number;
+  stateTaxRate: number;
+  salesTaxRate: number;
   carInsurance: number; 
 }
 
@@ -138,10 +155,11 @@ const locations = reactive<Record<string, LocationData>>({
     husbandIncome: 100000,
     homePrice: 450000,
     downPayment: 210000, 
-    rate: 6.3,
-    taxRate: 0.0039, 
-    stateTax: 0,
-    homeInsurance: 850,
+    rate: 5.0,
+    fixedPropertyTax: 1200, 
+    fixedHomeInsurance: 800,
+    stateTaxRate: 0,
+    salesTaxRate: 0.0925,
     carInsurance: 300
   },
   charlotte: {
@@ -151,9 +169,10 @@ const locations = reactive<Record<string, LocationData>>({
     homePrice: 450000,
     downPayment: 150000, 
     rate: 6.3,
-    taxRate: 0.0095, 
-    stateTax: 0.045, 
-    homeInsurance: 1300,
+    fixedPropertyTax: 4200, 
+    fixedHomeInsurance: 1300,
+    stateTaxRate: 0.045, 
+    salesTaxRate: 0.0725,
     carInsurance: 380
   },
   tampa: {
@@ -163,9 +182,10 @@ const locations = reactive<Record<string, LocationData>>({
     homePrice: 450000,
     downPayment: 150000, 
     rate: 6.3,
-    taxRate: 0.012, 
-    stateTax: 0,
-    homeInsurance: 4800, 
+    fixedPropertyTax: 9000, 
+    fixedHomeInsurance: 4000, 
+    stateTaxRate: 0,
+    salesTaxRate: 0.075,
     carInsurance: 580
   }
 });
@@ -178,48 +198,39 @@ const calcPI = (loc: LocationData): number => {
   return (principal * monthlyRate * Math.pow(1 + monthlyRate, n)) / (Math.pow(1 + monthlyRate, n) - 1);
 };
 
-const getYearlyPropertyTax = (loc: LocationData) => loc.homePrice * loc.taxRate;
-const getYearlyStateTax = (loc: LocationData) => (loc.wifeIncome + loc.husbandIncome) * loc.stateTax;
+const getYearlyStateTax = (loc: LocationData) => (loc.wifeIncome + loc.husbandIncome) * loc.stateTaxRate;
+
+const getMonthlySalesTax = (loc: LocationData) => {
+  const discretionary = (loc.wifeIncome + loc.husbandIncome) * 0.30;
+  return (discretionary * loc.salesTaxRate) / 12;
+};
+
+const getMonthlyNetAfterTax = (loc: LocationData): number => {
+  const gross = (loc.wifeIncome + loc.husbandIncome) / 12;
+  const fed = gross * 0.15;
+  const state = (getYearlyStateTax(loc) / 12);
+  const sales = getMonthlySalesTax(loc);
+  return gross - fed - state - sales;
+};
 
 const getFullMortgagePayment = (loc: LocationData) => {
-  const monthlyTax = getYearlyPropertyTax(loc) / 12;
-  const monthlyIns = loc.homeInsurance / 12;
-  return calcPI(loc) + monthlyTax + monthlyIns;
+  return calcPI(loc) + (loc.fixedPropertyTax / 12) + (loc.fixedHomeInsurance / 12);
 };
 
-// Calculates total monthly drain (Expenses + State Tax)
-const getTotalMonthlyExpenses = (loc: LocationData): number => {
-  const monthlyStateTax = getYearlyStateTax(loc) / 12;
-  return getFullMortgagePayment(loc) + loc.carInsurance + monthlyStateTax;
+const getTotalMonthlyBills = (loc: LocationData) => {
+  return getFullMortgagePayment(loc) + loc.carInsurance;
 };
 
-// Only compares the "drain" (expenses) relative to Knoxville
-const getExpenseDiff = (loc: LocationData): number => {
-  return getTotalMonthlyExpenses(loc) - getTotalMonthlyExpenses(locations.knoxville);
+const getFinalRemainder = (loc: LocationData) => {
+  return getMonthlyNetAfterTax(loc) - getTotalMonthlyBills(loc);
 };
 
-const getNetMonthlyIncome = (loc: LocationData): number => {
-  const combined = loc.wifeIncome + loc.husbandIncome;
-  const federalTax = 0.15; 
-  const stateTaxAmt = combined * loc.stateTax;
-  const netIncome = (combined - (combined * federalTax) - stateTaxAmt) / 12;
-  return netIncome - getFullMortgagePayment(loc) - loc.carInsurance;
-};
-
-// For the emerald number in the top header
-const getNetRemaining = (loc: LocationData) => {
-  const combined = loc.wifeIncome + loc.husbandIncome;
-  const federalTax = 0.15;
-  const stateTaxAmt = combined * loc.stateTax;
-  const monthlyNetIn = (combined - (combined * federalTax) - stateTaxAmt) / 12;
-  return monthlyNetIn - getFullMortgagePayment(loc) - loc.carInsurance;
-};
+const knoxFinal = computed(() => getFinalRemainder(locations['knoxville']!));
+const getMonthlyDiff = (loc: LocationData) => getFinalRemainder(loc) - knoxFinal.value;
 
 const formatCurr = (val: number) => {
   return new Intl.NumberFormat('en-US', { 
-    style: 'currency', 
-    currency: 'USD',
-    maximumFractionDigits: 0 
+    style: 'currency', currency: 'USD', maximumFractionDigits: 0 
   }).format(val);
 };
 </script>
